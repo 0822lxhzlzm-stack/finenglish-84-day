@@ -7,6 +7,8 @@
   let installPrompt = null;
   const phraseAudio = new Audio();
   phraseAudio.preload = "none";
+  phraseAudio.setAttribute("playsinline", "");
+  phraseAudio.setAttribute("webkit-playsinline", "");
 
   const app = document.getElementById("app");
   const dialog = document.getElementById("settingsDialog");
@@ -62,14 +64,18 @@
   function speak(text) {
     phraseAudio.pause();
     phraseAudio.currentTime = 0;
-    phraseAudio.playbackRate = Number(state.rate);
     const audioSlug = text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-    phraseAudio.src = `./${audioSlug}.mp3`;
+    phraseAudio.src = new URL(`./${audioSlug}.mp3?v=9`, document.baseURI).href;
+    phraseAudio.load();
     toast(`正在播放：${text}`);
     const playback = phraseAudio.play();
     if (playback && typeof playback.catch === "function") {
+      playback.then(() => {
+        try { phraseAudio.playbackRate = Number(state.rate); }
+        catch { /* 部分 iOS WebView 不允许修改预录音频的播放速度 */ }
+      });
       playback.catch(() => {
-        toast("内置音频暂不可用，已切换系统发音");
+        toast("正在使用手机系统发音");
         speakWithSystem(text);
       });
     }
@@ -219,3 +225,4 @@
   if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js"));
   render();
 })();
+
